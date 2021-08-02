@@ -1,6 +1,6 @@
 Package: tsissmad
 Title: ISSM model estimation using automatic differentiation
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person(given = "Alexios",
            family = "Galanos",
@@ -13,5 +13,5 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Depends: methods, tsmethods, data.table
-Imports: TMB (>= 1.7.20)
+Imports: TMB (>= 1.7.20), zoo
 LinkingTo: TMB

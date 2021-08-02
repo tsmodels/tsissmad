@@ -20,8 +20,8 @@
 
 \item{control}{Solver control parameters.}
 
-\item{use_hessian}{Whether to include the hessian in the calculation (for large models will
-be considerably slow due to the complexity of the model).}
+\item{use_hessian}{Whether to include the hessian in the calculation. This is currently
+problematic and we suggest not ovveriding the default (FALSE) until further investigation.}
 
 \item{...}{additional parameters passed to the estimation function}
 }

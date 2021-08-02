@@ -1,8 +1,10 @@
 #' @rawNamespace useDynLib(tsissmad, .registration=TRUE); useDynLib(tsissmad_TMBExports)
 #' @keywords internal
 #' @importFrom TMB MakeADFun
-#' @importFrom stats nlminb
+#' @importFrom stats nlminb na.omit
 #' @import data.table
+#' @import methods
+#' @importFrom zoo na.fill
 #' @import tsmethods
 "_PACKAGE"
 

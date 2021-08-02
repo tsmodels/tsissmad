@@ -196,9 +196,17 @@ estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(tr
     issmenv$parmatrix <- object$model$parmatrix
     if (solver != "nlminb") warning("\nonly nlminb solver currently supported for issm with autodiff. Using nlminb.")
     if (use_hessian) hessian <- spec_list$hess_fun else hessian <- NULL
+    scf <- scale_kappa(object)
+    if (scf$use_scaling) {
+        tmp <- object$parmatrix
+        tmp[grepl("kappa",parameters), scale := as.numeric(scf$scale_factors)]
+        scf <- tmp[estimate == 1]$scale
+    } else {
+        scf <- rep(1, length(fun$par))
+    }
     sol <- nlminb(start = fun$par, objective = spec_list$llh_fun, 
                   gradient = spec_list$grad_fun, hessian = hessian,  
-                  lower = spec_list$lower,
+                  lower = spec_list$lower, scale = scf, 
                   upper = spec_list$upper,  control = control, 
                   fun = fun, issmenv = issmenv)
     pars <- sol$par
@@ -214,4 +222,24 @@ estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(tr
     xseed <- fun$report()$states[1,,drop = FALSE]
     out <- list(pars = pars, llh = llh, gradient = gradient, hessian = hessian, xseed = xseed, solver_out = sol)
     return(out)
+}
+
+
+
+scale_kappa <- function(object)
+{
+    if (object$transform$include_lambda) {
+        use_scaling <- FALSE
+        scale_factor <- 1
+    } else {
+        if (object$xreg$include_xreg) {
+            use_scaling <- TRUE
+            yt <- object$transform$transform(object$target$y_orig)
+            scale_factors <- 1/(max(yt)/apply(object$xreg$xreg, 2, max))
+        } else {
+            use_scaling <- FALSE
+            scale_factor <- 1
+        }
+    }
+    return(list(use_scaling = use_scaling, scale_factors = scale_factors))
 }
