@@ -230,7 +230,7 @@ scale_kappa <- function(object)
 {
     if (object$transform$include_lambda) {
         use_scaling <- FALSE
-        scale_factor <- 1
+        scale_factors <- 1
     } else {
         if (object$xreg$include_xreg) {
             use_scaling <- TRUE
@@ -238,7 +238,7 @@ scale_kappa <- function(object)
             scale_factors <- 1/(max(yt)/apply(object$xreg$xreg, 2, max))
         } else {
             use_scaling <- FALSE
-            scale_factor <- 1
+            scale_factors <- 1
         }
     }
     return(list(use_scaling = use_scaling, scale_factors = scale_factors))
