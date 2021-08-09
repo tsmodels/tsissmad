@@ -194,21 +194,26 @@ estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(tr
     issmenv$parnames_estimate <- spec_list$parnames_estimate
     issmenv$tmb_names <- spec_list$tmb_names
     issmenv$parmatrix <- object$model$parmatrix
-    if (solver != "nlminb") warning("\nonly nlminb solver currently supported for issm with autodiff. Using nlminb.")
+    ## if (solver != "nlminb") warning("\nonly nlminb solver currently supported for issm with autodiff. Using nlminb.")
     if (use_hessian) hessian <- spec_list$hess_fun else hessian <- NULL
-    scf <- scale_kappa(object)
-    if (scf$use_scaling) {
-        tmp <- object$parmatrix
-        tmp[grepl("kappa",parameters), scale := as.numeric(scf$scale_factors)]
-        scf <- tmp[estimate == 1]$scale
+    # scf <- scale_kappa(object)
+    # if (scf$use_scaling) {
+    #     tmp <- object$parmatrix
+    #     tmp[grepl("kappa",parameters), scale := as.numeric(scf$scale_factors)]
+    #     scf <- tmp[estimate == 1]$scale
+    # } else {
+    #     scf <- rep(1, length(fun$par))
+    # }
+    if (solver == "nlminb") {
+        sol <- nlminb(start = fun$par, objective = spec_list$llh_fun, 
+                      gradient = spec_list$grad_fun, hessian = hessian,  
+                      lower = spec_list$lower, upper = spec_list$upper,  control = control, 
+                      fun = fun, issmenv = issmenv)
     } else {
-        scf <- rep(1, length(fun$par))
+        sol <- optim(par = fun$par, fn = spec_list$llh_fun, gr = spec_list$grad_fun, 
+                      lower = spec_list$lower, upper = spec_list$upper,  control = control, 
+                      method = "L-BFGS-B", fun = fun, issmenv = issmenv)
     }
-    sol <- nlminb(start = fun$par, objective = spec_list$llh_fun, 
-                  gradient = spec_list$grad_fun, hessian = hessian,  
-                  lower = spec_list$lower, scale = scf, 
-                  upper = spec_list$upper,  control = control, 
-                  fun = fun, issmenv = issmenv)
     pars <- sol$par
     names(pars) <- issmenv$tmb_names
     llh <- spec_list$llh_fun(pars, fun, issmenv)
