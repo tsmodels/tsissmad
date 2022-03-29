@@ -30,7 +30,7 @@ prepare_inputs_issm <- function(spec)
     S <- S[matrix != "xreg"]
     V <- S$values
     V[which(is.na(V))] <- 0
-    findex <- which(!is.na(S$pars))-1
+    findex <- which(!is.na(S$pars)) - 1
     p <- spec$parmatrix
     p <- p[!grepl("kappa",parameters)]
     p <- p[!grepl("lambda",parameters)]
@@ -41,7 +41,7 @@ prepare_inputs_issm <- function(spec)
     tmb_names <- rep("pars", length(parnames_estimate))
     lower <- pars$lower
     upper <- pars$upper
-    ppindex <- match(pars$parameters, p$parameters)-1
+    ppindex <- match(pars$parameters, p$parameters) - 1
     pars <- pars$initial
     kappa <- spec$parmatrix[grepl("kappa",parameters)]$initial
     lambda <- spec$parmatrix[grepl("lambda",parameters)]$initial
@@ -58,7 +58,7 @@ prepare_inputs_issm <- function(spec)
     gindex <-  range(which(S$matrix == "g"))
     gindex <- c(gindex[1] - 1, gindex[2] - gindex[1] + 1)
     fshape <- c(f0_index, f1_index, f2_index, windex, gindex)
-    y <- spec$target$y_orig
+    y <- spec$target$y
     X <- spec$xreg$xreg
     map <- list()
     if (!spec$transform$include_lambda) {
@@ -70,7 +70,6 @@ prepare_inputs_issm <- function(spec)
         tmb_names <- c(tmb_names, "lambda")
     }
     lambda <- spec$transform$lambda
-    
     if (!spec$xreg$include_xreg) {
         map$kappa <- factor(NA)
         kappa <- 0
@@ -179,7 +178,13 @@ estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(tr
     } else {
         silent <- TRUE
     }
-    spec_list$data$model <- "issm"
+    if (object$transform$name == "logit") {
+        spec_list$data$model <- "issmb"
+    } else if (object$transform$name == "box-cox"){
+        spec_list$data$model <- "issma"
+    } else {
+        stop("\nunknown transformation used")
+    }
     fun <- try(MakeADFun(data = spec_list$data, hessian = use_hessian, parameters = spec_list$par_list, DLL = "tsissmad_TMBExports", 
                          map = spec_list$map, trace = FALSE, silent = silent), silent = FALSE)
     fun$env$tracemgc <- FALSE
@@ -193,7 +198,7 @@ estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(tr
     issmenv$parameter_names <- spec_list$parnames_all
     issmenv$parnames_estimate <- spec_list$parnames_estimate
     issmenv$tmb_names <- spec_list$tmb_names
-    issmenv$parmatrix <- object$model$parmatrix
+    issmenv$parmatrix <- object$parmatrix
     ## if (solver != "nlminb") warning("\nonly nlminb solver currently supported for issm with autodiff. Using nlminb.")
     if (use_hessian) hessian <- spec_list$hess_fun else hessian <- NULL
     # scf <- scale_kappa(object)

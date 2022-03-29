@@ -1,12 +1,12 @@
-/// @file issm.hpp
-#ifndef issm_hpp
-#define issm_hpp
+/// @file issmb.hpp
+#ifndef issmb_hpp
+#define issmb_hpp
 
 #undef TMB_OBJECTIVE_PTR
 #define TMB_OBJECTIVE_PTR obj
 
 template<class Type>
-Type issm(objective_function<Type>* obj) {
+Type issmb(objective_function<Type>* obj) {
     DATA_VECTOR(V);
     DATA_MATRIX(X);
     DATA_VECTOR(good);
@@ -52,13 +52,9 @@ Type issm(objective_function<Type>* obj) {
     error.setZero();
     yhat.setZero();
     states.setZero();
-    vector<Type> ytrans(y.size());
-    for(int i = 0;i<timesteps;i++){
-        ytrans(i) = CppAD::CondExpLe(lambda, Type(1.0e-11), log(y(i)), (pow(y(i), lambda) - Type(1.0))/lambda);
-    }
     yaux(0) = xreg(0);
     waux.row(0) = W;
-    eaux(0) = ytrans(0) - yaux(0);
+    eaux(0) = y(0) - yaux(0);
     xaux.row(0) = G * eaux(0);
     matrix<Type> M = asMatrix(W,modeli(0),1).transpose();
     matrix<Type> B = asMatrix(G,modeli(0),1) * M;
@@ -69,7 +65,7 @@ Type issm(objective_function<Type>* obj) {
         tmp = xaux.row(i-1);
         yaux(i) = (tmp.array() * W.array()).sum() + xreg(i);
         if (good(i) > 0.5) {
-            eaux(i) = ytrans(i) - yaux(i);
+            eaux(i) = y(i) - yaux(i);
         } else {
             eaux(i) = 0.0;
         }
@@ -77,24 +73,19 @@ Type issm(objective_function<Type>* obj) {
         xaux.row(i) = (gtmp + G * eaux(i));
         waux.row(i) = waux.row(i-1) * D;
     }
-    vector<Type> ytranst(timesteps + 1);
-    vector<Type> goodt(timesteps + 1);
-    vector<Type> xregt(timesteps + 1);
     
     matrix<Type> A = waux.leftCols(modeli(1));
     matrix<Type> init_states = A.householderQr().solve(eaux.matrix());
     states.topLeftCorner(1,modeli(1)) = init_states.transpose();
     Type sum_error_squared = 0.0;
-    Type sum_log_y = 0.0;
     vector<Type> tmp2(modeli(0));
     vector<Type> gtmp2 = F * states.row(0).transpose();
     for(int i = 1; i <= timesteps; i++) {
         tmp2 = states.row(i-1);
         yhat(i) = (tmp2.array() * W.array()).sum() + xreg(i - 1);
         if(good(i - 1) > 0.5) {
-            error(i) = ytrans(i - 1) - yhat(i);
+            error(i) = y(i - 1) - yhat(i);
             sum_error_squared+= error(i) * error(i);
-            sum_log_y+=log(y(i-1));
         } else {
             error(i) = 0.0;
         }
@@ -104,7 +95,7 @@ Type issm(objective_function<Type>* obj) {
     Type good_timesteps = good.sum();
     REPORT(D);
     REPORT(states);
-    Type loglik = (good_timesteps) * log(sum_error_squared) - Type(2.0) * (lambda - Type(1.0)) * sum_log_y;
+    Type loglik = (good_timesteps) * log(sum_error_squared);
     return(loglik);
 }
 

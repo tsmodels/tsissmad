@@ -1,6 +1,6 @@
 Package: tsissmad
 Title: ISSM model estimation using automatic differentiation
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     person(given = "Alexios",
            family = "Galanos",
