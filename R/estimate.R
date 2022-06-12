@@ -25,6 +25,8 @@ arma_conditions <- function(pars, parnames) {
 
 prepare_inputs_issm <- function(spec)
 {
+    estimate <- NULL
+    parameters <- NULL
     S <- spec$S
     S <- S[matrix %in% c("F0","F1","F2","g","w")]
     S <- S[matrix != "xreg"]
@@ -81,7 +83,7 @@ prepare_inputs_issm <- function(spec)
             kappa_fixed <- rep(1:xn)
             kappa_fixed[ix] <- factor(NA)
             kappa_fixed <- as.factor(kappa_fixed)
-            map$kappa <- b_fixed
+            map$kappa <- kappa_fixed
         }
         if (any(spec$parmatrix[grepl("kappa",parameters)]$estimate == 1)) {
             lower <- c(lower, spec$parmatrix[grepl("kappa",parameters) & estimate == 1]$lower)
@@ -102,14 +104,14 @@ prepare_inputs_issm <- function(spec)
     # create function for ARMA and non ARMA models
     if (sum(spec$arma$order) > 0) {
         llh_fun <- function(pars, fun, issmenv) {
-            if(arma_conditions(pars, issmenv$parnames_estimate)) {
+            if (arma_conditions(pars, issmenv$parnames_estimate)) {
                 lik <- issmenv$lik + 0.25 * abs(issmenv$lik)
                 issmenv$lik <- lik
             } else {
                 names(pars) <- issmenv$tmb_names
                 lik <- fun$fn(pars)
                 D <- abs(Re(eigen(fun$report()$D, only.values = TRUE)$values))
-                if (is.na(lik) | any(D>1.01) | !is.finite(lik)) {
+                if (is.na(lik) | any(D > 1.01) | !is.finite(lik)) {
                     lik <- issmenv$lik + 0.25 * abs(issmenv$lik)
                     issmenv$lik <- lik
                 } else {
@@ -123,7 +125,7 @@ prepare_inputs_issm <- function(spec)
             names(pars) <- issmenv$tmb_names
             lik <- fun$fn(pars)
             D <- abs(Re(eigen(fun$report()$D, only.values = TRUE)$values))
-            if (is.na(lik) | any(D>1.01) | !is.finite(lik)) {
+            if (is.na(lik) | any(D > 1.01) | !is.finite(lik)) {
                 lik <- issmenv$lik + 0.25 * abs(issmenv$lik)
                 issmenv$lik <- lik
             } else {
@@ -144,7 +146,7 @@ prepare_inputs_issm <- function(spec)
         fun$he(pars)
     }
     
-    data <- list(V=V, X = X, good = good, y = y, allpars = allpars, 
+    data <- list(V = V, X = X, good = good, y = y, allpars = allpars, 
                  findex = findex, fpindex = fpindex, ppindex = ppindex, fshape = fshape, 
                  modeli = modeli)
     par_list <- list(pars = pars, kappa = kappa, lambda = lambda)
@@ -159,7 +161,7 @@ prepare_inputs_issm <- function(spec)
 #' @param object An object of class tsissm.spec.
 #' @param solver Only \dQuote{nlminb} currently supported.
 #' @param use_hessian Whether to include the hessian in the calculation. This is currently
-#' problematic and we suggest not ovveriding the default (FALSE) until further investigation.
+#' problematic and we suggest not overriding the default (FALSE) until further investigation.
 #' @param control Solver control parameters.
 #' @param ... additional parameters passed to the estimation function
 #' @return An list of coefficients and other information.
@@ -171,6 +173,8 @@ prepare_inputs_issm <- function(spec)
 #' 
 estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(trace = 0, eval.max = 300, iter.max = 500), use_hessian = FALSE, ...)
 {
+    parameters <- NULL
+    
     spec_list <- prepare_inputs_issm(object)
     other_opts <- list(...)
     if (!is.null(other_opts$silent)) {
@@ -180,13 +184,13 @@ estimate_ad.tsissm.spec <- function(object, solver = "nlminb", control = list(tr
     }
     if (object$transform$name == "logit") {
         spec_list$data$model <- "issmb"
-    } else if (object$transform$name == "box-cox"){
+    } else if (object$transform$name == "box-cox") {
         spec_list$data$model <- "issma"
     } else {
         stop("\nunknown transformation used")
     }
     fun <- try(MakeADFun(data = spec_list$data, hessian = use_hessian, parameters = spec_list$par_list, DLL = "tsissmad_TMBExports", 
-                         map = spec_list$map, trace = FALSE, silent = silent), silent = FALSE)
+                         map = spec_list$map, trace = FALSE, silent = silent, checkParameterOrder = F), silent = FALSE)
     fun$env$tracemgc <- FALSE
     
     if (inherits(fun, 'try-error')) {
