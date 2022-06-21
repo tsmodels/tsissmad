@@ -6,4 +6,4 @@
 
 # tsissmad
 
-ISSM model estimation using autodiff
+ISSM model estimation using autodiff.
